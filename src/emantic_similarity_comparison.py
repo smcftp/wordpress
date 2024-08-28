@@ -8,9 +8,9 @@ from config import settings_pr
 
 import random
 
-from sentence_transformers import SentenceTransformer
-from pinecone.grpc import PineconeGRPC as Pinecone
-from pinecone import ServerlessSpec 
+from src.sentence_transformers import SentenceTransformer
+from src.pinecone.grpc import PineconeGRPC as Pinecone
+from src.pinecone import ServerlessSpec 
 
 import warnings
 
