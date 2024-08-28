@@ -298,7 +298,7 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
                 # Настройка размера массива
                 percentage = 10  # Процент, например, 50 для 50%
                 num_rows = int(len(url_data) * (percentage / 100))
-                url_data = url_data.head(50)
+                url_data = url_data.head(10)
                 
                 for url in url_data['url']:
                     tasks.append(process_url_limited(url))
