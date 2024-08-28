@@ -11,3 +11,4 @@ requests
 reportlab
 openai
 protobuf
+googleapis-common-protos
