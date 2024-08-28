@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 
 import os
+import tempfile 
 
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
