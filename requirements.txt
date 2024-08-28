@@ -1,0 +1,12 @@
+pydantic-settings
+aiogram
+asyncio
+aiohttp
+pandas
+numpy
+sentence-transformers
+pinecone-client
+beautifulsoup4
+requests
+reportlab
+openai
