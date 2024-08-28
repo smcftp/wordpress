@@ -28,25 +28,25 @@ class Form(StatesGroup):
     waiting_for_message = State()
 
 async def send_xlsx_to_chat(chat_id: int) -> None:
+    # Используем относительный путь
+    file_path = os.path.join(os.getcwd(), 'tests', 'output.xlsx')
     
-    print("1 = Current working directory:", os.getcwd())
-
-    document = FSInputFile('D:\\Programming\\Python\\GPT\\Wordpress_web_article_auto_generator\\tests\\output.xlsx')
-    # document = FSInputFile('\\Python\\GPT\\Wordpress_web_article_auto_generato\\tests\\output.xlsx')
+    print("Current working directory:", os.getcwd())
+    document = FSInputFile(file_path)
+    
     await bot_tg.send_document(chat_id, document)
     
+
 async def save_df_to_xlsx(df: pd.DataFrame) -> None:
+    # Используем относительный путь
+    file_path = os.path.join(os.getcwd(), 'tests', 'output.xlsx')
     
-    print("2 = Current working directory:", os.getcwd())
+    print("Current working directory:", os.getcwd())
     
-    file_path = "D:\\Programming\\Python\\GPT\\Wordpress_web_article_auto_generator\\tests\\output.xlsx"
-    # file_path = "\\Python\\GPT\\Wordpress_web_article_auto_generato\\tests\\output.xlsx"
     df['validate title'] = np.nan
 
     # Сохранение DataFrame в формате Excel
     df.to_excel(file_path, index=False, engine='openpyxl')
-        
-        
 
 @dp.message(Command('start'))
 async def command_start_handler(message: Message, state: FSMContext) -> None:
