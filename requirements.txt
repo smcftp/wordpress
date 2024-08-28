@@ -12,3 +12,4 @@ reportlab
 openai
 protobuf
 googleapis-common-protos
+protoc-gen-openapiv2
