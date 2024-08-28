@@ -3,7 +3,7 @@ import json
 
 import pandas as pd
 
-from config import settings_pr
+from src.config import settings_pr
 
 client = AsyncOpenAI(
     api_key=settings_pr.openai_api_key
