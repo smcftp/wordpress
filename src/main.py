@@ -1,8 +1,8 @@
 import asyncio
 import logging
 import sys
-from config import bot_tg
-from handlers import register_handlers1, dp
+from src.config import bot_tg
+from src.handlers import register_handlers1, dp
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
 
