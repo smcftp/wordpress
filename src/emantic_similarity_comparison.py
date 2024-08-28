@@ -4,7 +4,7 @@ import aiohttp
 import pandas as pd
 import numpy as np
 
-from config import settings_pr
+from src.config import settings_pr
 
 import random
 
