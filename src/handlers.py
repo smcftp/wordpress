@@ -30,27 +30,35 @@ class Form(StatesGroup):
 
 async def send_xlsx_to_chat(chat_id: int) -> None:
     # Используем временный файл
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp_file:
-        temp_file_path = temp_file.name
+    file_path = os.path.join(tempfile.gettempdir(), 'output.xlsx')
     
-    # Отправка документа
-    document = FSInputFile(temp_file_path)
-    await bot_tg.send_document(chat_id, document)
+    print("Temporary file path for sending:", file_path)
+    
+    # Проверяем, существует ли файл и не пустой ли он
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        document = FSInputFile(file_path)
+        await bot_tg.send_document(chat_id, document)
+    else:
+        print("Ошибка: файл пустой или не существует.")
+        raise ValueError("Файл пустой или не существует.")
 
-    # Удаление временного файла после отправки
-    os.remove(temp_file_path)
-
-async def save_df_to_xlsx(df: pd.DataFrame) -> str:
-    # Создаем временный файл
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp_file:
-        temp_file_path = temp_file.name
+async def save_df_to_xlsx(df: pd.DataFrame) -> None:
+    # Используем временный файл
+    file_path = os.path.join(tempfile.gettempdir(), 'output.xlsx')
+    
+    print("Temporary file path for saving:", file_path)
     
     df['validate title'] = np.nan
 
     # Сохранение DataFrame в формате Excel
-    df.to_excel(temp_file_path, index=False, engine='openpyxl')
-
-    return temp_file_path
+    df.to_excel(file_path, index=False, engine='openpyxl')
+    
+    # Проверяем, что файл был создан и не пустой
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        print("Файл успешно сохранен и не пустой.")
+    else:
+        print("Ошибка при сохранении файла.")
+        raise ValueError("Ошибка при сохранении файла.")
 
 
 @dp.message(Command('start'))
