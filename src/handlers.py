@@ -17,10 +17,10 @@ import os
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-from config import bot_tg, is_processing
-from utils import fetch_and_process_competitor_data, get_website_theme, check_wordpress
-from openai_utils import filter_article_titles, check_article_exists
-from serpstat import get_url_competitors, get_domain_keywords
+from src.config import bot_tg, is_processing
+from src.utils import fetch_and_process_competitor_data, get_website_theme, check_wordpress
+from src.openai_utils import filter_article_titles, check_article_exists
+from src.serpstat import get_url_competitors, get_domain_keywords
 
 dp = Dispatcher()
 
