@@ -11,9 +11,9 @@ from aiogram.types import Message
 
 from sentence_transformers import SentenceTransformer, util
 
-from serpstat import get_initial_domain_keywords, get_domain_keywords, get_task_result, get_task_status, add_task, get_competitors
-from openai_utils import filter_article_titles, check_article_exists, filter_article_titles_theme
-from emantic_similarity_comparison import process_semantic_similarity
+from src.serpstat import get_initial_domain_keywords, get_domain_keywords, get_task_result, get_task_status, add_task, get_competitors
+from src.openai_utils import filter_article_titles, check_article_exists, filter_article_titles_theme
+from src.emantic_similarity_comparison import process_semantic_similarity
 
 # Настройка лимита семафора для ограничения числа одновременных запросов к OpenAI API
 SEM_LIMIT = 5  # Максимальное число одновременных запросов
