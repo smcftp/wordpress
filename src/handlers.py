@@ -28,25 +28,29 @@ class Form(StatesGroup):
     waiting_for_message = State()
 
 async def send_xlsx_to_chat(chat_id: int) -> None:
-    # Используем относительный путь
-    file_path = os.path.join(os.getcwd(), 'tests', 'output.xlsx')
+    # Используем временный файл
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp_file:
+        temp_file_path = temp_file.name
     
-    print("Current working directory:", os.getcwd())
-    document = FSInputFile(file_path)
-    
+    # Отправка документа
+    document = FSInputFile(temp_file_path)
     await bot_tg.send_document(chat_id, document)
-    
 
-async def save_df_to_xlsx(df: pd.DataFrame) -> None:
-    # Используем относительный путь
-    file_path = os.path.join(os.getcwd(), 'tests', 'output.xlsx')
-    
-    print("Current working directory:", os.getcwd())
+    # Удаление временного файла после отправки
+    os.remove(temp_file_path)
+
+async def save_df_to_xlsx(df: pd.DataFrame) -> str:
+    # Создаем временный файл
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as temp_file:
+        temp_file_path = temp_file.name
     
     df['validate title'] = np.nan
 
     # Сохранение DataFrame в формате Excel
-    df.to_excel(file_path, index=False, engine='openpyxl')
+    df.to_excel(temp_file_path, index=False, engine='openpyxl')
+
+    return temp_file_path
+
 
 @dp.message(Command('start'))
 async def command_start_handler(message: Message, state: FSMContext) -> None:
