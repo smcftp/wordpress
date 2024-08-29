@@ -161,60 +161,88 @@ async def get_article_title(url: str) -> str:
 
 # Функция для получения всех статей
 async def fetch_all_posts(domain: str, session: aiohttp.ClientSession) -> pd.DataFrame:
-    
-    parsed_url = urlparse(domain)
-    domain = parsed_url.netloc
-    
-    url = f"https://{domain}/wp-json/wp/v2/posts"
-    page = 1
-    per_page = 100
-    all_posts = []
+    try:
+        parsed_url = urlparse(domain)
+        domain = parsed_url.netloc
+        
+        url = f"https://{domain}/wp-json/wp/v2/posts"
+        page = 1
+        per_page = 100
+        all_posts = []
 
-    while True:
-        async with session.get(f"{url}?per_page={per_page}&page={page}") as response:
-            if response.status != 200:
-                print(f"Failed to retrieve posts from page {page}, status code: {response.status}")
+        while True:
+            try:
+                async with session.get(f"{url}?per_page={per_page}&page={page}") as response:
+                    if response.status != 200:
+                        print(f"Failed to retrieve posts from page {page}, status code: {response.status}")
+                        break
+
+                    try:
+                        posts = await response.json()
+                    except aiohttp.ContentTypeError as e:
+                        print(f"Ошибка при попытке декодирования JSON ответа на странице {page}: {e}")
+                        break
+
+                    if not posts:
+                        break
+                    
+                    all_posts.extend(posts)
+                    page += 1
+            except aiohttp.ClientError as e:
+                print(f"Ошибка при запросе страницы {page}: {e}")
                 break
-            
-            posts = await response.json()
-            if not posts:
+            except asyncio.TimeoutError:
+                print(f"Тайм-аут запроса на странице {page}.")
                 break
-            
-            all_posts.extend(posts)
-            page += 1
+            except Exception as e:
+                print(f"Неизвестная ошибка при получении данных со страницы {page}: {e}")
+                break
 
-    df = pd.DataFrame(all_posts)
-    
-    # Текстовый запрос для фильтрации
-    # query = "информативная и оригинальная статья, которая предоставляет полезную информацию, советы, рекомендации, исследовательский материал или новостные обзоры"
-    
-    query = "убери Новостные публикации, Рекламные и партнерские посты, Инфографики и визуальный контент"
+        if not all_posts:
+            print("Нет постов для обработки.")
+            return pd.DataFrame()
 
-    # Преобразование текстов в векторы
-    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-    
-    query_embedding = model.encode(query)
-    title_embeddings = model.encode(df['title'].tolist())
+        try:
+            df = pd.DataFrame(all_posts)
+        except ValueError as e:
+            print(f"Ошибка при создании DataFrame из полученных постов: {e}")
+            return pd.DataFrame()
 
-    # Вычисление косинусного сходства
-    cosine_scores = util.pytorch_cos_sim(query_embedding, title_embeddings)
+        # Текстовый запрос для фильтрации
+        query = "убери Новостные публикации, Рекламные и партнерские посты, Инфографики и визуальный контент"
 
-    # Установка порога для фильтрации
-    threshold = 0.5
-    df['similarity'] = cosine_scores[0].cpu().numpy()
+        try:
+            model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        except Exception as e:
+            print(f"Ошибка при загрузке модели SentenceTransformer: {e}")
+            return pd.DataFrame()
 
-    # Фильтрация DataFrame на основе семантической схожести
-    filtered_df = df[df['similarity'] >= threshold]
+        try:
+            query_embedding = model.encode(query)
+            title_embeddings = model.encode(df['title'].tolist())
+        except Exception as e:
+            print(f"Ошибка при преобразовании текстов в векторы: {e}")
+            return pd.DataFrame()
 
-    # print("Отфильтрованные статьи на основе семантической схожести:")
-    # print(filtered_df[['title', 'similarity']])
-    
-    # file_path = "C:\\Users\\thatn\\Downloads\\put3.xlsx"
+        try:
+            cosine_scores = util.pytorch_cos_sim(query_embedding, title_embeddings)
+        except Exception as e:
+            print(f"Ошибка при вычислении косинусного сходства: {e}")
+            return pd.DataFrame()
 
-    # # Сохранение DataFrame в формате Excel
-    # filtered_df.to_excel(file_path, index=False, engine='openpyxl')
+        # Установка порога для фильтрации
+        threshold = 0.5
+        df['similarity'] = cosine_scores[0].cpu().numpy()
 
-    return filtered_df
+        # Фильтрация DataFrame на основе семантической схожести
+        filtered_df = df[df['similarity'] >= threshold]
+
+        return filtered_df
+
+    except Exception as e:
+        print(f"Неизвестная ошибка в функции fetch_all_posts: {e}")
+        return pd.DataFrame()
+  
 
 # Проверка администрируется ли сайт на World Press
 async def check_wordpress(site_url: str, session: aiohttp.ClientSession) -> bool:
