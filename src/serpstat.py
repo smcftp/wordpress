@@ -5,8 +5,11 @@ import json
 from urllib.parse import urlparse
 import asyncio
 
-from src.config import settings_pr
+from config import settings_pr
 import numpy as np
+
+from aiogram.types import Message
+
 
 SERPSTAT_API_TOKEN = settings_pr.serpstat_api_key
 
@@ -33,7 +36,7 @@ async def translate_to_english(session, text):
         return text
 
 # Получение ключевых слов для парсинга топа
-async def get_initial_domain_keywords(session: aiohttp.ClientSession, url: str, se: str) -> pd.DataFrame:
+async def get_initial_domain_keywords(message: Message, session: aiohttp.ClientSession, url: str, se: str) -> pd.DataFrame:
     parsed_url = urlparse(url)
     domain = parsed_url.netloc
 
@@ -66,11 +69,12 @@ async def get_initial_domain_keywords(session: aiohttp.ClientSession, url: str, 
         print(f"Ошибка клиента aiohttp: {e}")
     except asyncio.TimeoutError:
         print("Тайм-аут запроса.")
+        await message.answer(f"Тайм-аут запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
 
 # Добавление задачи на парсинг сайта
-async def add_task(session: aiohttp.ClientSession, keywords, type_id, se_id, country_id, region_id, lang_id) -> int:
+async def add_task(message: Message, session: aiohttp.ClientSession, keywords, type_id, se_id, country_id, region_id, lang_id) -> int:
     payload = {
         "id": "some_id",
         "method": "tasks.addTask",
@@ -100,11 +104,12 @@ async def add_task(session: aiohttp.ClientSession, keywords, type_id, se_id, cou
         print(f"Ошибка клиента aiohttp: {e}")
     except asyncio.TimeoutError:
         print("Тайм-аут запроса.")
+        await message.answer(f"Тайм-аут запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
 
 # Получение статуса парсера
-async def get_task_status(session: aiohttp.ClientSession, type_id):
+async def get_task_status(message: Message, session: aiohttp.ClientSession, type_id):
     
     payload = {
         "id": 1,
@@ -136,11 +141,12 @@ async def get_task_status(session: aiohttp.ClientSession, type_id):
         print(f"Ошибка клиента aiohttp: {e}")
     except asyncio.TimeoutError:
         print("Тайм-аут запроса.")
+        await message.answer(f"Тайм-аут запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
 
 # Получение результатов парсинга сайта
-async def get_task_result(session, task_id):
+async def get_task_result(message: Message, session, task_id):
     payload = {
         "id": "some_id",
         "method": "tasks.getTaskResult",
@@ -175,6 +181,7 @@ async def get_task_result(session, task_id):
         print(f"Ошибка клиента aiohttp: {e}")
     except asyncio.TimeoutError:
         print("Тайм-аут запроса.")
+        await message.answer(f"Тайм-аут запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
 
@@ -230,7 +237,7 @@ async def get_task_result(session, task_id):
 #         print(f"Неизвестная ошибка: {e}")
 
 # Определние статей на сайте
-async def get_domain_keywords(session: aiohttp.ClientSession, domain: str, se: str) -> pd.DataFrame:
+async def get_domain_keywords(message: Message, session: aiohttp.ClientSession, domain: str, se: str) -> pd.DataFrame:
     
     intentinformational_keywords = "how what why where when who guide tutorial best tips examples steps ideas ways strategy strategies compare comparison benefits advantages disadvantages review reviews how to learn explain overview introduction example explained meaning definition instructions help resources facts info information analysis summary description guide to methods techniques list listing process checklist explore discover history facts about ways to options alternatives types tutorials case study case studies pros and cons trends patterns background data statistics updates insights news reports report white paper ebook blog post article research study findings explanation reasons causes ways to methods of overview of types of effects of impact of difference between cost of cost comparison meaning of definition of review of reviews of how do how does how can why does why do why is who is who are what is what are where can when should which is which are can i can you could i could you should i should you"
 
@@ -296,6 +303,7 @@ async def get_domain_keywords(session: aiohttp.ClientSession, domain: str, se: s
             break
         except asyncio.TimeoutError:
             print("Тайм-аут запроса.")
+            await message.answer(f"Тайм-аут запроса. Повторите попытку.")
             break
         except Exception as e:
             print(f"Неизвестная ошибка: {e}")
@@ -327,10 +335,10 @@ async def get_domain_keywords(session: aiohttp.ClientSession, domain: str, se: s
         return df
     else:
         print("Нет данных для создания DataFrame.")
-        return None
+        return pd.DataFrame() 
     
 # Получение ссылок на аналагичные статьи
-async def get_url_competitors(session: aiohttp.ClientSession, url: str, se: str) -> pd.DataFrame:
+async def get_url_competitors(message: Message, session: aiohttp.ClientSession, url: str, se: str) -> pd.DataFrame:
     
     payload = {
         "id": "1",
@@ -352,11 +360,14 @@ async def get_url_competitors(session: aiohttp.ClientSession, url: str, se: str)
                     data_list = result['result'].get('data')
                     extracted_data = pd.DataFrame([(item['url']) for item in data_list])
                     return extracted_data 
+                else:
+                    # Обработка страниц, для которых не найдены конкуренты
+                    pass
                 
                
             else:
                 print(f"Error in add_task: {response.status}")
-                return None
+                return pd.DataFrame() 
             
     except aiohttp.ClientResponseError as e:
         print(f"Ошибка ответа клиента: {e}")
@@ -364,11 +375,14 @@ async def get_url_competitors(session: aiohttp.ClientSession, url: str, se: str)
         print(f"Ошибка клиента aiohttp: {e}")
     except asyncio.TimeoutError:
         print("Тайм-аут запроса.")
+        await message.answer(f"Тайм-аут запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
+    
+    return pd.DataFrame() 
         
 # Получение конкурентов домена
-async def get_competitors(session: aiohttp.ClientSession, initial_url: str, se: str) -> pd.DataFrame:
+async def get_competitors(message: Message, session: aiohttp.ClientSession, initial_url: str, se: str) -> pd.DataFrame:
     
     parsed_url = urlparse(initial_url)
     domain = parsed_url.netloc
@@ -432,7 +446,8 @@ async def get_competitors(session: aiohttp.ClientSession, initial_url: str, se: 
         print(f"Ошибка клиента aiohttp: {e}")
     except asyncio.TimeoutError:
         print("Тайм-аут запроса.")
+        await message.answer(f"Тайм-аут запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
-
+        
     return pd.DataFrame() 
