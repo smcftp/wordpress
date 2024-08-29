@@ -85,9 +85,10 @@ async def handle_text_http_url(message: Message, state: FSMContext) -> None:
             
             if await check_wordpress(initial_url, session) == True:
                 list_of_topics = await fetch_and_process_competitor_data(message, session, initial_url, se='g_by', top_n=8)
-                await message.answer(f"Список предлагаемых тем представлен в файле.")
-                await save_df_to_xlsx(list_of_topics)
-                await send_xlsx_to_chat(message.chat.id)
+                if not list_of_topics.empty:
+                    await message.answer(f"Список предлагаемых тем представлен в файле.")
+                    await save_df_to_xlsx(list_of_topics)
+                    await send_xlsx_to_chat(message.chat.id)
             else:
                 await message.answer("Представленный вами сайт определен, как не работающий на WordPress.")
         
