@@ -5,7 +5,7 @@ import json
 from urllib.parse import urlparse
 import asyncio
 
-from config import settings_pr
+from src.config import settings_pr
 import numpy as np
 
 from aiogram.types import Message
