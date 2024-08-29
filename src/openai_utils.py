@@ -52,14 +52,14 @@ async def check_article_exists(link: str) -> bool:
     )
 
     if completion.choices[0].finish_reason != 'tool_calls':
-        return False
+        return pd.DataFrame()
 
     try:
         bool_res = json.loads(completion.choices[0].message.tool_calls[0].function.arguments)["is_article"]
         return bool_res
     except (KeyError, ValueError, TypeError) as e:
         print(f"Ошибка при анализе результата: {e}")
-        return False
+        return pd.DataFrame()
       
 async def filter_article_titles(titles: pd.DataFrame) -> list[str]:
     tools = [
@@ -112,7 +112,7 @@ async def filter_article_titles(titles: pd.DataFrame) -> list[str]:
         return res
     except (KeyError, ValueError, TypeError) as e:
         print(f"Ошибка при анализе результата: {e}")
-        return False
+        return pd.DataFrame()
 
 
 async def filter_article_titles_theme(titles: pd.DataFrame, theme: str) -> list[str]:
@@ -166,7 +166,7 @@ async def filter_article_titles_theme(titles: pd.DataFrame, theme: str) -> list[
         return res
     except (KeyError, ValueError, TypeError) as e:
         print(f"Ошибка при анализе результата: {e}")
-        return False
+        return pd.DataFrame()
 
       
       
