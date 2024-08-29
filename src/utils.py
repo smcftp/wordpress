@@ -296,9 +296,13 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
         # Получение конкурентов через "Конкуренты домена"
         try:
             top_urls = await get_competitors(session, initial_url, se)
+            print("top_urls = ", top_urls)
             if top_urls.empty:
                 await message.answer(f"Конкуренты для данного сайта не найдены.") 
-                return pd.DataFrame() 
+                return pd.DataFrame()
+                # Обработка доменов с неопределенными конкурентами
+                # top_urls = 
+                
             formatted_output = top_urls.to_string(index=False, justify='left')
             await message.answer(f"Сайты конкуренты получены.\n```\n{formatted_output}\n```", parse_mode="Markdown")
         except Exception as e:
@@ -320,7 +324,7 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
                 url_data = await get_domain_keywords(session, domain, se)
             except Exception as e:
                 print(f"Ошибка при получении ключевых слов для домена {domain}: {e}")
-                continue  # Переходим к следующему домену в случае ошибки
+                continue  
             
             if url_data is not None and not url_data.empty:
                 all_url_data = pd.concat([all_url_data, url_data], ignore_index=True)
@@ -328,7 +332,7 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
                 # Настройка размера массива
                 percentage = 10  # Процент, например, 50 для 50%
                 num_rows = int(len(url_data) * (percentage / 100))
-                url_data = url_data.head(50)
+                url_data = url_data.head(5)
                 
                 for url in url_data['url']:
                     tasks.append(process_url_limited(url))
@@ -338,6 +342,10 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
             all_url_data.dropna(inplace=True)
             all_url_data.drop_duplicates(subset='url', keep='first', inplace=True)
             all_url_data.sort_values(by=['found_results', 'position', 'traff'], ascending=[False, False, False], inplace=True)
+            if all_url_data.empty:
+                await message.answer(f"У конкурентов не найдены статьи.")
+                return pd.DataFrame()
+            
             print("all_url_data = \n", all_url_data)
             print(all_url_data.info())
         except Exception as e:
@@ -346,6 +354,10 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
         try:
             results = await asyncio.gather(*tasks)
             existing_df = pd.concat(results, ignore_index=True)
+            if existing_df.empty:
+                await message.answer(f"Статьи у конкурентов не найдены")
+                return pd.DataFrame()
+            
             existing_df.dropna(inplace=True)
             existing_df.drop_duplicates(subset='title', keep='first', inplace=True)
             print("existing_df = \n", existing_df)
@@ -360,6 +372,9 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
             df_filtered = pd.DataFrame(await filter_article_titles(existing_df), columns=['title'])
             filtered_titles = set(df_filtered['title'])
             existing_df = existing_df[existing_df['title'].isin(filtered_titles)]
+            if existing_df.empty:
+                await message.answer(f"Не найдено статей.")
+                return pd.DataFrame()
             print("Проверка LLM закончена")
         except Exception as e:
             print(f"Ошибка при фильтрации данных через LLM: {e}")
@@ -367,7 +382,12 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
         # Получение существующих статей на сайте
         try:
             cur_articles_df = await fetch_all_posts(initial_url, session)
-            print("Сбор имеющихся статей завершен")
+            
+            if cur_articles_df.empty:
+                await message.answer(f"Представленый вами сайт не использует стандартный REST API WordPress для администрирования статей.")
+                return pd.DataFrame()
+            else:
+                print("Сбор имеющихся статей завершен")
         except Exception as e:
             print(f"Ошибка при сборе имеющихся статей: {e}")
             return pd.DataFrame()
