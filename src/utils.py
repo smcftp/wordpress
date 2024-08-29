@@ -295,7 +295,7 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
     try:
         # Получение конкурентов через "Конкуренты домена"
         try:
-            top_urls = await get_competitors(session, initial_url, se)
+            top_urls = await get_competitors(message, session, initial_url, se)
             print("top_urls = ", top_urls)
             if top_urls.empty:
                 await message.answer(f"Конкуренты для данного сайта не найдены.") 
@@ -321,7 +321,7 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
         tasks = []
         for domain in top_urls.get('domain', []):
             try:
-                url_data = await get_domain_keywords(session, domain, se)
+                url_data = await get_domain_keywords(message, session, domain, se)
             except Exception as e:
                 print(f"Ошибка при получении ключевых слов для домена {domain}: {e}")
                 continue  
