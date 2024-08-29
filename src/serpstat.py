@@ -434,3 +434,5 @@ async def get_competitors(session: aiohttp.ClientSession, initial_url: str, se: 
         print("Тайм-аут запроса.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
+
+    return pd.DataFrame() 
