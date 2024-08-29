@@ -270,11 +270,12 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
             top_urls = await get_competitors(session, initial_url, se)
             if top_urls.empty:
                 await message.answer(f"Конкуренты для данного сайта не найдены.") 
+                return pd.DataFrame() 
             formatted_output = top_urls.to_string(index=False, justify='left')
             await message.answer(f"Сайты конкуренты получены.\n```\n{formatted_output}\n```", parse_mode="Markdown")
         except Exception as e:
             await message.answer(f"Ошибка при получении конкурентов: {e}")
-            return pd.DataFrame()  # Возвращаем пустой DataFrame в случае ошибки
+            return pd.DataFrame()  
 
         # Настройка размера массива конкурентов
         percentage = 80  # Процент, например, 50 для 50%
