@@ -63,7 +63,7 @@ async def save_df_to_xlsx(df: pd.DataFrame) -> None:
 
 @dp.message(Command('start'))
 async def command_start_handler(message: Message, state: FSMContext) -> None:
-    await message.answer(f"Приветствую тебя {message.from_user.first_name}!")
+    await message.answer(f"Приветствую тебя {message.from_user.first_name}!\nПредставьте ссылку на сайт для анализа.")
     await state.set_state(Form.waiting_for_message)
 
 # Обработка текстовых сообщений
