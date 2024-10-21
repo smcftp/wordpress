@@ -261,8 +261,6 @@ python-iso639
 python-magic
 pytube
 pytz
-pywin32
-pywin32-ctypes
 PyYAML
 qdrant-client
 qrcode
