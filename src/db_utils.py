@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 import pandas as pd
 import asyncio
 import aiohttp
+import os
 
 from aiogram.types import Message
 from aiogram.types.input_file import FSInputFile
@@ -202,6 +203,9 @@ async def periodic_article_processing(message: Message, session: aiohttp.ClientS
                     file_path = await add_img_to_textarticle(key_words_article, keywords_article_title, img_gen)
                     document = FSInputFile(file_path)
                     await bot_tg.send_document(message.chat.id, document)
+
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(None, os.remove, file_path)
                     
                 else:
                     title_df = await utils.fetch_and_process_competitor_data(message, session, initial_url, se=se, top_n=10)
