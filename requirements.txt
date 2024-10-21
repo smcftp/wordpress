@@ -1,5 +1,5 @@
 absl-py==2.1.0
-aiobotocore==2.13.3
+aiobotocore
 aiofiles==23.2.1
 aiogram==3.10.0
 aiohappyeyeballs==2.3.7
