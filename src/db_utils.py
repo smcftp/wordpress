@@ -9,9 +9,9 @@ from aiogram.types.input_file import FSInputFile
 from urllib.parse import urlparse
 
 from bcrypt import gensalt, hashpw
-import utils
+import src.utils
 
-from config import bot_tg
+from src.config import bot_tg
 from src.db.database import SessionLocal
 import src.db.crud as crud
 
@@ -192,8 +192,8 @@ async def periodic_article_processing(message: Message, session: aiohttp.ClientS
                     session = None
                     
                     # from Article_generation.dev.dev_Article_gen_initial_text_through_plan import gen_keyword_article
-                    from Article_generation.test.test_1_Article_gen_initial_text_through_plan import gen_keyword_article
-                    from Article_generation.dev.img_imput import add_img_to_textarticle
+                    from src.Article_generation.dev.test_1_Article_gen_initial_text_through_plan import gen_keyword_article
+                    from src.Article_generation.dev.img_imput import add_img_to_textarticle
                     
                     key_words_article, keywords_article_title = await gen_keyword_article(url, article_title, session)
                     
