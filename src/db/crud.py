@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from db.database import User, Site, Article, Base
+from src.db.database import User, Site, Article, Base
 from sqlalchemy import text
 from datetime import datetime
 
