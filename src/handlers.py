@@ -17,8 +17,8 @@ import os
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-from config import bot_tg, is_processing
-import db_utils
+from src.config import bot_tg, is_processing
+import src.db_utils
 
 dp = Dispatcher()
 
