@@ -10,7 +10,6 @@ import numpy as np
 
 from aiogram.types import Message
 
-
 SERPSTAT_API_TOKEN = settings_pr.serpstat_api_key
 
 # URL для запросов к API Serpstat
@@ -96,7 +95,7 @@ async def add_task(message: Message, session: aiohttp.ClientSession, keywords, t
                     return task_id
             else:
                 print(f"Error in add_task: {response.status}")
-                return None
+                return 0
             
     except aiohttp.ClientResponseError as e:
         print(f"Ошибка ответа клиента: {e}")
@@ -104,12 +103,14 @@ async def add_task(message: Message, session: aiohttp.ClientSession, keywords, t
         print(f"Ошибка клиента aiohttp: {e}")
     except asyncio.TimeoutError:
         print("Тайм-аут запроса.")
-        await message.answer(f"Тайм-аут запроса. Повторите попытку.")
+        await message.answer(f"Тайм-аут     запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
+    
+    return 0
 
 # Получение статуса парсера
-async def get_task_status(message: Message, session: aiohttp.ClientSession, type_id):
+async def get_task_status(message: Message, session: aiohttp.ClientSession, type_id: int):
     
     payload = {
         "id": 1,
@@ -133,7 +134,7 @@ async def get_task_status(message: Message, session: aiohttp.ClientSession, type
                                 return True
             else:
                 print(f"Error in add_task: {response.status}")
-                return None
+                return False
             
     except aiohttp.ClientResponseError as e:
         print(f"Ошибка ответа клиента: {e}")
@@ -144,9 +145,11 @@ async def get_task_status(message: Message, session: aiohttp.ClientSession, type
         await message.answer(f"Тайм-аут запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
+    
+    return False
 
 # Получение результатов парсинга сайта
-async def get_task_result(message: Message, session, task_id):
+async def get_task_result(message: Message, session: aiohttp.ClientSession, task_id: int) -> pd.DataFrame:
     payload = {
         "id": "some_id",
         "method": "tasks.getTaskResult",
@@ -167,13 +170,16 @@ async def get_task_result(message: Message, session, task_id):
                     
                     for top_item in top_list:
                         position = top_item.get('position')
-                        domain = top_item.get('domain')
-                        tops_info.append({'position': position, 'domain': domain})
+                        url = top_item.get('url')
+                        domain = top_item('domain')
+                        tops_info.append({'position': position, 'url': url, 'domain': domain})
                     
-                    return pd.DataFrame(tops_info)
+                    tops_info = pd.DataFrame(tops_info)
+                    tops_info = tops_info.sort_values(by='position', ascending=True)
+                    return tops_info
             else:
                 print(f"Error in get_task_result: {response.status}")
-                return None
+                return pd.DataFrame()
             
     except aiohttp.ClientResponseError as e:
         print(f"Ошибка ответа клиента: {e}")
@@ -184,6 +190,9 @@ async def get_task_result(message: Message, session, task_id):
         await message.answer(f"Тайм-аут запроса. Повторите попытку.")
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
+
+    return pd.DataFrame()
+
 
 # async def get_domain_keywords(session, domain, se):
     
@@ -245,7 +254,7 @@ async def get_domain_keywords(message: Message, session: aiohttp.ClientSession, 
     all_data = []
 
     # while True:
-    while page < 5:
+    while page < 3:
         # Формируем данные для запроса
         data = {
             "id": "1",
@@ -254,7 +263,7 @@ async def get_domain_keywords(message: Message, session: aiohttp.ClientSession, 
                 "domain": domain,
                 "se": se,
                 "page": str(page),
-                "size": "100",
+                "size": "40",
                 "sort": {
                     "traff": "desc"
                 },
@@ -406,6 +415,8 @@ async def get_competitors(message: Message, session: aiohttp.ClientSession, init
                 if isinstance(result, dict) and 'result' in result:
                     response_data = result['result']['data']
                     
+                    print(response_data)
+                    
                     # Инициализация списков для хранения данных
                     domains = []
                     relevances = []
@@ -429,10 +440,11 @@ async def get_competitors(message: Message, session: aiohttp.ClientSession, init
                     
                     # Добавить логику фильтрации конкурентов
                     
-                    relevance_cutoff = 5
+                    relevance_cutoff = 0
                     
                     df_sorted = df_sorted[df_sorted['relevance'] >= relevance_cutoff]
                     df_sorted = df_sorted.drop(df_sorted.index[0])
+                    df_sorted = df_sorted.drop(df_sorted.index[1])
                     
                     return df_sorted
                 
@@ -451,3 +463,50 @@ async def get_competitors(message: Message, session: aiohttp.ClientSession, init
         print(f"Неизвестная ошибка: {e}")
         
     return pd.DataFrame() 
+
+# Определние ключевых слов страницы
+async def get_page_keywords(session: aiohttp.ClientSession, url: str, se: str) -> str:
+    
+    payload = {
+        "id": "1",
+        "method": "SerpstatUrlProcedure.getUrlKeywords",
+        "params": {
+            "se": se,
+            "url": url,
+            "filters": {"cost_from": 1,
+                        "cost_to": 1000
+                      },
+            "sort": {"position": "asc"},
+            "page": 3,
+            "size": 2
+        }
+    }
+
+    try:
+        async with session.post(url_main, json=payload, timeout=10) as response:
+            if response.status == 200:
+                result = await response.json()
+                
+                # # Форматированный вывод результата
+                # formatted_result = json.dumps(result, indent=4, ensure_ascii=False)
+                # print(formatted_result)
+                
+                response_data = result['result']['data']
+                
+                keywords = str([item['keyword'] for item in response_data])
+                keywords = keywords.replace("[", "").replace("]", "").replace(",", "").replace("'", "")
+                
+                return keywords
+                
+            else:
+                print(f"Error in get_url_competitors: {response.status}")
+                return ""
+            
+    except aiohttp.ClientResponseError as e:
+        print(f"Ошибка клиента aiohttp: {e}")
+    except asyncio.TimeoutError:
+        print("Тайм-аут запроса.")
+    except Exception as e:
+        print(f"Неизвестная ошибка: {e}")
+    
+    return ""
