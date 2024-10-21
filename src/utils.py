@@ -23,8 +23,9 @@ semaphore = asyncio.Semaphore(SEM_LIMIT)
 async def get_website_theme(url: str, session: aiohttp.ClientSession) -> str:
     try:
         
-        parsed_url = urlparse(url)
-        domain_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+        # parsed_url = urlparse(url)
+        # domain_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+        domain_url = url
         
         async with session.get(domain_url) as response:
             response.raise_for_status() 
@@ -57,20 +58,21 @@ async def get_website_theme(url: str, session: aiohttp.ClientSession) -> str:
 
 async def process_url_limited(url: str) -> pd.DataFrame:
     """
-    This function limits the number of concurrent requests to the API using a semaphore and 
-    includes a delay to avoid hitting rate limits.
+        This function limits the number of concurrent requests to the API using a semaphore and 
+        includes a delay to avoid hitting rate limits.
 
-    Args:
-    - url: The URL to check if it contains an article.
+        Args:
+        - url: The URL to check if it contains an article.
 
-    Returns:
-    - A DataFrame with the title and URL if the article exists, otherwise an empty DataFrame.
+        Returns:
+        - A DataFrame with the title and URL if the article exists, otherwise an empty DataFrame.
     """
     async with semaphore:  # Use the semaphore to limit concurrent requests
         await asyncio.sleep(0.2)  # Delay to prevent rate limiting
         
         # Check if the URL is an article
         article_exists = await check_article_exists(url)
+        # article_exists = True
 
         if article_exists:
             try:
@@ -98,66 +100,7 @@ async def get_article_title(url: str) -> str:
                 return soup.find('title').get_text() if soup.find('title') else "No Title Found"
     except aiohttp.ClientError as e:
         print(f"Ошибка при запросе: {e}")
-        return None
-    
-###############################################################################################################
-
-# async def get_competitor_keywords(initial_url, se='g_by', top_n=5):
-#     start_time = time.time()
-    
-#     async with aiohttp.ClientSession() as session:
-#         keywords_list = await get_initial_domain_keywords(session, initial_url, se)
-#         keywords_list = keywords_list.sample(frac=1).reset_index(drop=True)
-#         print("keywords list = ", keywords_list)
-#         keywords = keywords_list.iloc[0, 0]
-#         print("keywords = ", keywords)
-        
-#         # task_id = await add_task(session, keywords, 1, 1, 113, 2112, 1) # Беларусь
-#         # task_id = await add_task(session, keywords, 1, 1, 20, 2643, 1) # Россия
-#         task_id = await add_task(session, keywords, 1, 1, 23, 21176, 1) # СШA
-        
-#         print("task_id =", task_id)
-        
-#         while True:
-#             await asyncio.sleep(20)
-#             status = await get_task_status(session, task_id)
-#             if status:
-#                 break
-#             else:
-#                 print("Задача не выполнена. Попробуйте снова позже.")
-        
-#         if task_id:
-#             top_urls = await get_task_result(session, task_id)
-#             top_urls = top_urls.sort_values(by='position', ascending=True).head(top_n)
-            
-#             columns = ['title', 'url']
-#             existing_df = pd.DataFrame(columns=columns)
-            
-#             print("Сайты конкуренты получены.")
-#             tasks = []
-#             for domain in top_urls['domain']:
-#                 url_data = await get_domain_keywords(session, domain, se)
-                
-#                 if url_data is not None and not url_data.empty:
-#                     url_data = url_data.head(15)
-#                     for url in url_data['url']:
-#                         tasks.append(process_url(session, url, existing_df))
-            
-#             results = await asyncio.gather(*tasks)
-#             existing_df = pd.concat(results, ignore_index=True)
-                               
-#         # file_path = "output.csv"
-#         # await save_dataframe_to_csv(existing_df, file_path)
-#         # print("Итоговые темы:\n", existing_df)
-#         existing_df = existing_df[['title']]
-#         existing_df = existing_df.dropna()
-        
-#     end_time = time.time()
-#     execution_time = end_time - start_time
-#     print(f"Время выполнения: {execution_time:.2f} секунд")
-    
-#     return existing_df     
-    
+        return None  
 
 # Функция для получения всех статей
 async def fetch_all_posts(domain: str, session: aiohttp.ClientSession) -> pd.DataFrame:
@@ -242,12 +185,13 @@ async def fetch_all_posts(domain: str, session: aiohttp.ClientSession) -> pd.Dat
     except Exception as e:
         print(f"Неизвестная ошибка в функции fetch_all_posts: {e}")
         return pd.DataFrame()
-  
+
 
 # Проверка администрируется ли сайт на World Press
 async def check_wordpress(site_url: str, session: aiohttp.ClientSession) -> bool:
     parsed_url = urlparse(site_url)
     domain_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+    # domain_url = site_url
     
     paths = [
         '/wp-login.php',
@@ -294,25 +238,31 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
     
     try:
         # Получение конкурентов через "Конкуренты домена"
+        
         try:
             top_urls = await get_competitors(message, session, initial_url, se)
             print("top_urls = ", top_urls)
             if top_urls.empty:
-                await message.answer(f"Конкуренты для данного сайта не найдены.") 
-                return pd.DataFrame()
-                # Обработка доменов с неопределенными конкурентами
-                # top_urls = 
+                top_urls_1 = await parse_top_for_competitor_website(initial_url, session)
+                if top_urls_1.empty:
+                    await message.answer(f"Конкуренты для данного сайта не найдены.")
+                    return pd.DataFrame()
                 
             formatted_output = top_urls.to_string(index=False, justify='left')
             await message.answer(f"Сайты конкуренты получены.\n```\n{formatted_output}\n```", parse_mode="Markdown")
         except Exception as e:
             await message.answer(f"Ошибка при получении конкурентов: {e}")
             return pd.DataFrame()  
+        
+        # print("top_urls = ", top_urls)
+        
+        # data = {'domain': ['mlk.by'], 'relevance': [30.44]}
+        # top_urls = pd.DataFrame(data)
 
         # Настройка размера массива конкурентов
         percentage = 80  # Процент, например, 50 для 50%
         num_rows = int(len(top_urls) * (percentage / 100))
-        # url_data = top_urls.head()
+        top_urls = top_urls.head(5)
                 
         columns = ['title', 'url']
         existing_df = pd.DataFrame(columns=columns)
@@ -332,7 +282,7 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
                 # Настройка размера массива
                 percentage = 10  # Процент, например, 50 для 50%
                 num_rows = int(len(url_data) * (percentage / 100))
-                url_data = url_data.head(5)
+                # url_data = url_data.head(5)
                 
                 for url in url_data['url']:
                     tasks.append(process_url_limited(url))
@@ -367,39 +317,40 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
             return pd.DataFrame()
 
         # Фильтрация данных через LLM: дубликаты и мусор
-        print("Проверка LLM начата")
-        try:
-            df_filtered = pd.DataFrame(await filter_article_titles(existing_df), columns=['title'])
-            filtered_titles = set(df_filtered['title'])
-            existing_df = existing_df[existing_df['title'].isin(filtered_titles)]
-            if existing_df.empty:
-                await message.answer(f"Не найдено статей.")
-                return pd.DataFrame()
-            print("Проверка LLM закончена")
-        except Exception as e:
-            print(f"Ошибка при фильтрации данных через LLM: {e}")
+        # print("Проверка LLM начата")
+        # try:
+        #     df_filtered = pd.DataFrame(await filter_article_titles(existing_df), columns=['title'])
+        #     filtered_titles = set(df_filtered['title'])
+        #     existing_df = existing_df[existing_df['title'].isin(filtered_titles)]
+        #     if existing_df.empty:
+        #         await message.answer(f"Не найдено статей.")
+        #         return pd.DataFrame()
+        #     print("Проверка LLM закончена")
+        # except Exception as e:
+        #     print(f"Ошибка при фильтрации данных через LLM: {e}")
         
-        # Получение существующих статей на сайте
-        try:
-            cur_articles_df = await fetch_all_posts(initial_url, session)
+        # # Получение существующих статей на сайте
+        # try:
+        #     cur_articles_df = await fetch_all_posts(initial_url, session)
             
-            if cur_articles_df.empty:
-                await message.answer(f"Представленый вами сайт не использует стандартный REST API WordPress для администрирования статей.")
-                return pd.DataFrame()
-            else:
-                print("Сбор имеющихся статей завершен")
-        except Exception as e:
-            print(f"Ошибка при сборе имеющихся статей: {e}")
-            return pd.DataFrame()
+        #     if cur_articles_df.empty:
+        #         await message.answer(f"Представленый вами сайт не использует стандартный REST API WordPress для администрирования статей.")
+        #         return pd.DataFrame()
+        #     else:
+        #         print("Сбор имеющихся статей завершен")
+        # except Exception as e:
+        #     print(f"Ошибка при сборе имеющихся статей: {e}")
+        #     return pd.DataFrame()
 
-        # Фильтрация статей по семантическому сходству
-        similarity_threshold = 0.8
-        try:
-            filtered_df = await process_semantic_similarity(existing_df, cur_articles_df, similarity_threshold)
-            print("Фильтрация статей по семантическому сходству завершена")
-        except Exception as e:
-            print(f"Ошибка при фильтрации статей по семантическому сходству: {e}")
-            return pd.DataFrame()
+        # # Фильтрация статей по семантическому сходству
+        # similarity_threshold = 0.8
+        # try:
+        #     filtered_df = await process_semantic_similarity(existing_df, cur_articles_df, similarity_threshold)
+        #     print("Фильтрация статей по семантическому сходству завершена")
+        # except Exception as e:
+        #     print(f"Ошибка при фильтрации статей по семантическому сходству: {e}")
+        #     return pd.DataFrame()
+        filtered_df = existing_df
 
         # Соединение двух дата фреймов по ссылке
         try:
@@ -416,24 +367,68 @@ async def fetch_and_process_competitor_data(message: Message, session: aiohttp.C
         execution_time = end_time - start_time
         print(f"Время выполнения: {execution_time:.2f} секунд")
         
+        merged_df = merged_df[['title', 'url']]   
+             
         return merged_df
     
     except Exception as e:
         print(f"Неизвестная ошибка: {e}")
         return pd.DataFrame()
 
+# Получение конкурентов сайта в случае неранжирующегося сайта
+async def parse_top_for_competitor_website(website_url: str, session: aiohttp.ClientSession) -> pd.DataFrame:
+    print("pfikb d gfhcth")
+    try:
+        # Определение тематики сайта
+        try:
+            website_url_description = await get_website_theme(website_url, session)
+        except Exception as e:
+            logging.error(f"Ошибка при определении тематики сайта {website_url}: {e}")
+            return pd.DataFrame()  # Возвращаем пустой DataFrame в случае ошибки
 
-async def pars_tops(session, initial_url, se, top_n):
+        # Определение ключевых слов
+        try:
+            key_words = await suggest_keywords_from_description(website_url_description)
+        except Exception as e:
+            logging.error(f"Ошибка при определении ключевых слов для сайта {website_url}: {e}")
+            return pd.DataFrame()  # Возвращаем пустой DataFrame в случае ошибки
+
+        # Парсинг топа
+        se = "g_by"
+        top_n = 8
+        try:
+            df_urls = await pars_tops(session, key_words, se, top_n)
+        except Exception as e:
+            logging.error(f"Ошибка при парсинге топов для сайта {website_url}: {e}")
+            return pd.DataFrame()  # Возвращаем пустой DataFrame в случае ошибки
+
+        # Извлечение доменов
+        try:
+            df_domain = df_urls[['domain']]
+        except KeyError as e:
+            logging.error(f"Ошибка при извлечении колонки 'domain': {e}")
+            return pd.DataFrame()  # Возвращаем пустой DataFrame в случае ошибки
+
+        return df_domain
+
+    except Exception as e:
+        logging.critical(f"Непредвиденная ошибка при обработке сайта {website_url}: {e}")
+        return pd.DataFrame()  # Возвращаем пустой DataFrame в случае любой непредвиденной ошибки
+
+async def pars_tops(session: aiohttp.ClientSession, key_words: str, se: str, top_n: int) -> pd.DataFrame:
     
-    keywords_list = await get_initial_domain_keywords(session, initial_url, se)
-    keywords_list = keywords_list.sample(frac=1).reset_index(drop=True)
-    print("keywords list = ", keywords_list)
-    keywords = keywords_list.iloc[0, 0]
-    print("keywords = ", keywords)
+    # keywords_list = await get_initial_domain_keywords(session, initial_url, se)
+    # keywords_list = keywords_list.sample(frac=1).reset_index(drop=True)
+    # print("keywords list = ", keywords_list)
+    # keywords = keywords_list.iloc[0, 0]
+    # print("keywords = ", keywords)
         
-    # task_id = await add_task(session, keywords, 1, 1, 113, 2112, 1) # Беларусь
-    # task_id = await add_task(session, keywords, 1, 1, 20, 2643, 1) # Россия
-    task_id = await add_task(session, keywords, 1, 1, 23, 21176, 1) # СШA
+    task_id = await add_task(session, key_words, 1, 1, 113, 2112, 1) # Беларусь
+    # task_id = await add_task(session, key_words, 1, 1, 20, 2643, 1) # Россия
+    # task_id = await add_task(session, key_words, 1, 1, 23, 21176, 1) # СШA
+    
+    if task_id == 0:
+        return pd.DataFrame()
         
     print("task_id =", task_id)
         
@@ -442,20 +437,8 @@ async def pars_tops(session, initial_url, se, top_n):
         status = await get_task_status(session, task_id)
         if status:
             break
-        else:
-            print("Задача не выполнена. Попробуйте снова позже.")
         
     if task_id:
-        top_urls = await get_task_result(session, task_id)
-        top_urls = top_urls.sort_values(by='position', ascending=True).head(top_n)
+        top_urls = pd.DataFrame(await get_task_result(session, task_id))
+        top_urls = top_urls.head(top_n)
         return top_urls
-
-
-# async def main() -> None:
-#     # start_time = time.time()
-#     async with aiohttp.ClientSession() as session:
-#         initial_url = 'https://ppc-rating.by/'
-#         message = None
-#         await fetch_and_process_competitor_data(message, session, initial_url, se='g_by', top_n=5)
-
-# asyncio.run(main())
