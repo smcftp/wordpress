@@ -41,22 +41,26 @@ async def insert_image_after_semantic_phrase(text: str, phrase: str, image_path:
     before_sentence = '. '.join(sentences[:best_match_index + 1])
     after_sentence = '. '.join(sentences[best_match_index + 1:])
     
-    # Читаем изображение и кодируем его в base64
-    with open(image_path, "rb") as img_file:
-        image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+    response = requests.get(image_path)
+    if response.status_code == 200:
+        # Преобразуем изображение в base64
+        image_base64 = base64.b64encode(response.content).decode('utf-8')
     
-    image_height = 400
-    image_width = 400
-    
-    # Вставляем изображение с указанием размера
-    # image_tag = f'<div class="image-container"><img src="{os.path.abspath(image_path)}" alt="Inserted Image" width="{image_width}" height="{image_height}"></div><br>'
-    
-    image_tag = f'<div class="image-container"><img src="data:image/png;base64,{image_base64}" alt="Inserted Image" width="{image_width}" height="{image_height}"></div><br>'
+        image_height = 400
+        image_width = 400
+        
+        # Вставляем изображение с указанием размера
+        # image_tag = f'<div class="image-container"><img src="{os.path.abspath(image_path)}" alt="Inserted Image" width="{image_width}" height="{image_height}"></div><br>'
+        
+        image_tag = f'<div class="image-container"><img src="data:image/png;base64,{image_base64}" alt="Inserted Image" width="{image_width}" height="{image_height}"></div><br>'
 
-    # Объединяем части текста с вставленным изображением
-    new_text = before_sentence + image_tag + after_sentence
+        # Объединяем части текста с вставленным изображением
+        new_text = before_sentence + image_tag + after_sentence
+        
+        return new_text
     
-    return new_text
+    else:
+        return text
 
 # Асинхронная функция для загрузки текстового файла
 async def load_txt_file(file_path):
@@ -213,6 +217,9 @@ async def text_to_html(text: str, article_title: str, file_name: str) -> str:
         </body>
       </html>
     """
+
+    temp_dir = tempfile.gettempdir()
+    file_path = os.path.join(temp_dir, file_name)
     
     async with aiofiles.open(file_name, 'w', encoding='utf-8') as file:
         await file.write(html_content)
@@ -396,52 +403,11 @@ async def rephrase_image_query(image_query: str) -> str:
         logging.error(f"An unexpected error occurred: {e}")
         return "An unexpected error occurred. Please try again later."
 
-
-# Функция для загрузки изображения и сохранения его на диск
-async def download_and_save_image(image_url: str, image_path: str) -> None:
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(image_url) as response:
-                if response.status == 200:
-                    async with aiofiles.open(image_path, 'wb') as file:
-                        content = await response.read()
-                        await file.write(content)
-                    logging.info(f"Изображение успешно сохранено: {image_path}")
-                else:
-                    logging.error(f"Ошибка при загрузке изображения: {response.status}")
-    except Exception as e:
-        logging.error(f"Ошибка при сохранении изображения: {e}")
-
-
-# Функция для конвертации HTML в PDF с использованием xhtml2pdf
-async def convert_html_to_pdf(html_file_path: str, output_pdf_path: str):
-    try:
-        # Проверяем, существует ли HTML-файл
-        if not os.path.exists(html_file_path):
-            raise FileNotFoundError(f"HTML-файл не найден: {html_file_path}")
-        
-        # Открываем HTML файл и конвертируем в PDF
-        with open(html_file_path, 'r', encoding='utf-8') as html_file:
-            html_content = html_file.read()
-        
-        # Конвертация в PDF
-        with open(output_pdf_path, 'wb') as pdf_file:
-            pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
-        
-        if pisa_status.err:
-            print(f"Ошибка при конвертации HTML в PDF")
-        else:
-            print(f"HTML успешно конвертирован в PDF: {output_pdf_path}")
-    
-    except Exception as e:
-        print(f"Ошибка при конвертации HTML в PDF: {e}")
-
-
 # Асинхронная функция для добавления изображений в статью
 async def add_img_to_textarticle(text_article: str, article_title: str, img_gen: bool) -> str:
     input_text = text_article
     
-    file_name = 'output_article.html'
+    file_name = f"article_{uuid.uuid4().hex}.png"  # Имя вашего файла
     
     if img_gen == True:
         
@@ -501,8 +467,7 @@ async def add_img_to_textarticle(text_article: str, article_title: str, img_gen:
                     # Проверка, что ссылка на изображение действительно получена
                     if image_url:
                         # Генерируем уникальное имя для файла и сохраняем его
-                        image_path = f"D:\\Programming\\Python\\GPT\\Wordpress_web_article_auto_generator\\dalle_img\\image_{uuid.uuid4().hex}.png"
-                        await download_and_save_image(image_url, image_path)
+                        pass
                     else:
                         logging.info(f"Пустая ссылка на изображение. Попытка {attempt + 1} из {max_attempts}. Повтор запроса...")
                         # Если не удалось получить изображение, переформулируем запрос
@@ -516,7 +481,7 @@ async def add_img_to_textarticle(text_article: str, article_title: str, img_gen:
                 
                 attempt += 1
 
-            formatted_output = await insert_image_after_semantic_phrase(formatted_output, word, image_path, article_title)
+            formatted_output = await insert_image_after_semantic_phrase(formatted_output, word, image_url, article_title)
         
         output_html = await text_to_html(formatted_output, article_title, file_name)
 
@@ -524,10 +489,8 @@ async def add_img_to_textarticle(text_article: str, article_title: str, img_gen:
         # webbrowser.open('file://' + os.path.realpath(output_html))
         
         htmp_path = os.path.abspath(file_name)
-        pdf_path = f"D:\\Programming\\Python\\GPT\\Wordpress_web_article_auto_generator\\pdf_article\\article_{uuid.uuid4().hex}.pdf"
-        await convert_html_to_pdf(htmp_path, pdf_path)
         
-        return pdf_path
+        return htmp_path
     
     else: 
         
@@ -631,6 +594,9 @@ async def add_img_to_textarticle(text_article: str, article_title: str, img_gen:
         </body>
       </html>
     """
+
+    temp_dir = tempfile.gettempdir()
+    file_path = os.path.join(temp_dir, file_name)
     
     async with aiofiles.open(file_name, 'w', encoding='utf-8') as file:
         await file.write(html_content)
@@ -638,39 +604,3 @@ async def add_img_to_textarticle(text_article: str, article_title: str, img_gen:
     return os.path.abspath(file_name)
     
     
-# 1) Облачные сервисы в ваших бизнес-процессах: пошаговое руководство для успешного внедрения
-# 2) Автоматизируйте кадровый учет с помощью IntellStaff: 5 простых шагов.
-# 3) АЛГОРИТМ ДЕЙСТВИЙ ДЛЯ ПЕРЕХОДА НА ЭДО
-# 4) Автоматизация бизнес-процессов: Исследование рынка
-# 5) Чему кадровик может научиться у бухгалтера?
-# 6) NOTA BENE! ЭДО В ТРУДОВЫХ ОТНОШЕНИЯХ С 01.01.2024. Часть третья «ст. 29-1 ТК vs ч. 1 ст. 307-2 ТК»
-# 7) NOTA BENE! ЭДО В ТРУДОВЫХ ОТНОШЕНИЯХ С 01.01.2024. Часть вторая «4 NB!»
-# 8) NOTA BENE! ЭДО В ТРУДОВЫХ ОТНОШЕНИЯХ С 01.01.2024. Часть первая «Trick or treat»
-# 9) ЛПА для дистанционной работы
-# 10) Как мотивировать сотрудников
-# 11) О рабочем времени 2022
-# 12) Управление персоналом: с чего начать
-# 13) Начало квартала — время для ПУ-2
-# 14) 4 шага, чтобы показать директору экономию от покупки
-# 15) «Делайте сами, все сразу и бесплатно»: вредные советы для внедрения автоматизации
-# 16) Сэкономил – значит, заработал: почему нельзя ставить работу на паузу
-# 17) Особенности директора как работника
-# 18) 2 шага чтобы увольнять без головной боли
-# 19) Зачем директору цифровая трансформация кадрового учёта?
-# 20) Что такое цифровая трансформация бизнеса?
-# 21) Увольнение сотрудника в Беларуси: как разойтись без стресса? Екатерина Грубинова — специально для ББК.
-# 22) Проект IntellStaff и кадровые радости — автоматизированный кадровый учет в #Нефудблогер Kitchen Show
-# 23) Обзор на сервис автоматизации кадрового учета IntellStaff
-# 24) Как оцифровать рутину и повысить доходность компании на 25%
-# 25) Оценка эффективности внедрения
-# 26) Как внедрить электронный документооборот
-# 27) Электронный документооборот в кадровом производстве
-# 28) Контроль за работниками. Что выбрать?
-# 29) Лето! Отпуск! А как правильно рассчитать количество дней трудового отпуска?
-# 30) Осталось 11 дней до изменения ПУ-2!
-# 31) Жизнь после COVID-19: оптимизация бизнес-процессов
-# 32) Кадровый учет без штрафов
-# 33) 4 вопроса про «облака»
-# 34) Частые и дорогостоящие ошибки в кадровом учете
-
-        
