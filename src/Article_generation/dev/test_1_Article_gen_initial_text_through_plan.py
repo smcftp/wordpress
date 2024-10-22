@@ -9,7 +9,7 @@ from langchain_community.document_loaders import UnstructuredURLLoader
 from sentence_transformers import SentenceTransformer, util
 import logging
 from aiohttp import ClientSession
-import serpstat
+import src.serpstat as serpstat
 
 from src.config import settings_pr
 
