@@ -22,8 +22,12 @@ import src.db_utils
 
 dp = Dispatcher()
 
+# Классы состояний
 class Form(StatesGroup):
     waiting_for_message = State()
+
+class PublishIntervalState(StatesGroup):
+    waiting_for_interval = State()
 
 # Обработчик команды /start
 @dp.message(CommandStart())
