@@ -28,6 +28,8 @@ SQLAlchemy
 bcrypt
 sentence-transformers
 xhtml2pdf
+psycopg2
+psycopg2-binary
 
 
 
