@@ -18,145 +18,214 @@ import src.db.crud as crud
 
 # Функция для сохранения данных в базе данных.
 async def save_data_to_db(df: pd.DataFrame, initial_url: str, user_id: int, user_username: str, publication_interval: int):
-    
-    # Создание новой сессии базы данных
-    db_session = SessionLocal()
-    
-    # Данные о пользователе и сайте
-    password = "user_password"
-    hashed_password = hashpw(password.encode('utf-8'), gensalt())
-
-    user_data = {
-        "user_id": user_id,
-        "username": user_username,
-        "email": str(user_username + "@example.com"),
-        "password_hash": str(hashed_password),
-    }
-    
-    site = await crud.get_site_by_user_and_url(db_session, user_id, initial_url)
-    
-    parsed_url = urlparse(initial_url)
-    domain = parsed_url.netloc
-    
-    if site:
-        site_id = site.id
-        
-        site_data = {
-            "site_id": site_id,
-            "user_id": user_data["user_id"],
-            "site_url": initial_url,
-            "site_name": domain, 
-            "publication_interval": publication_interval
-        }
-        
-        article_id = await crud.get_last_article_id(db_session)
-        
-        if article_id != None:
-
-            # Преобразование данных из DataFrame в список статей
-            article_data = df.to_dict('records')
-
-            # Добавление article_id и site_id в данные о статьях
-            for i, article in enumerate(article_data, start=article_id+1):
-                article["article_id"] = i
-                article["site_id"] = site_data["site_id"]
-        
-    else:
-        
-        site_id = await crud.get_last_site_id(db_session)
-        
-        if site_id != None:
-        
-            site_data = {
-            "site_id": site_id+1,
-            "user_id": user_data["user_id"],
-            "site_url": initial_url,
-            "site_name": domain, 
-            "publication_interval": publication_interval
-        }
-
-            article_id = await crud.get_last_article_id(db_session)
-        
-            if article_id != None:
-
-                # Преобразование данных из DataFrame в список статей
-                article_data = df.to_dict('records')
-
-                # Добавление article_id и site_id в данные о статьях
-                for i, article in enumerate(article_data, start=article_id+1):
-                    article["article_id"] = i
-                    article["site_id"] = site_data["site_id"]
-    
-    # Очистка БД
-    # try:
-    #     await clear_database(db)
-    #     print("База данных успешно очищена.")
-    # except Exception as e:
-    #     print(f"Ошибка при очистке базы данных: {e}")
-    # finally:
-    #     db.close()
-
-
-    # Попробуем найти пользователя по email или имени
-    user = await crud.get_user_by_id(db_session, user_data["user_id"])
-
     try:
-        # Проверка, существует ли пользователь
-        if user:
-            # Пользователь существует, проверем список сайтов
-            print(f"Пользователь уже существует: {user.username} ({user.email})")
-            
-            site = await crud.get_site_by_user_and_url(db_session, user_id=user.id, site_url=site_data['site_url'])
+        # Создание новой сессии базы данных
+        db_session = SessionLocal()
+        
+        # Данные о пользователе и сайте
+        password = "123456789"
+        hashed_password = hashpw(password.encode('utf-8'), gensalt())
 
-            if site:
-                # Сайт существует, проверем список статей
-                print(f"Сайт уже существует: {site.site_url} ({site.site_name})")
-                
-                # Получение всех статей, связанных с сайтом
-                existing_articles = await crud.get_articles_by_site_id(db_session, site_id=site.id)
-                existing_article_titles = {article.article_title for article in existing_articles}
-                
-                for article in article_data:
-                    title = article['title']
-                    if title in existing_article_titles:
-                        # Статья существует
-                        print(f"Статья уже существует: {title}")
-                    else:
-                        # Статья не существует, добавляем ее
-                        print(f"Статья не существует: {title}")
-                        new_article = await crud.create_article(db_session, article_id=article["article_id"], site_id=site.id, article_title=article['title'], article_url=article['url'])
-                        print(f"Добавлена статья: {new_article.article_title}")
-                
-            else:
-                # Сайта не существует, добавление нового сайта
-                site = await crud.create_site(db_session, site_id=site_data["site_id"], user_id=user.id, site_url=site_data['site_url'], site_name=site_data['site_name'], publication_interval=site_data["publication_interval"])
-                print(f"Добавлен сайт: {site.site_url}")
-                
-                # Добавление статей
-                for article in article_data:
-                    new_article = await crud.create_article(db_session, article_id=article["article_id"], site_id=site.id, article_title=article['title'], article_url=article['url'])
-                    print(f"Добавлена статья: {new_article.article_title}")
+        user_data = {
+            "user_id": user_id,
+            "username": user_username,
+            "email": str(user_username + "@example.com"),
+            "password_hash": str(hashed_password),
+        }
+        
+        try:
+            site = await crud.get_site_by_user_and_url(db_session, user_id, initial_url)
+        except Exception as e:
+            print(f"Ошибка при получении сайта по пользователю и URL: {e}")
+            return
+        
+        parsed_url = urlparse(initial_url)
+        domain = parsed_url.netloc
+        
+        if site:
+            site_id = site.id
             
+            site_data = {
+                "site_id": site_id,
+                "user_id": user_data["user_id"],
+                "site_url": initial_url,
+                "site_name": domain, 
+                "publication_interval": publication_interval
+            }
+            
+            try:
+                article_id = await crud.get_last_article_id(db_session)
+            except Exception as e:
+                print(f"Ошибка при получении последнего article_id: {e}")
+                return
+            
+            if article_id is not None:
+                try:
+                    # Преобразование данных из DataFrame в список статей
+                    article_data = df.to_dict('records')
+
+                    # Добавление article_id и site_id в данные о статьях
+                    for i, article in enumerate(article_data, start=article_id + 1):
+                        article["article_id"] = i
+                        article["site_id"] = site_data["site_id"]
+                except Exception as e:
+                    print(f"Ошибка при преобразовании данных DataFrame в список: {e}")
         else:
-            # Пользователя нет, создание нового пользователя
-            user = await crud.create_user(db_session, user_id=user_data["user_id"], username=user_data['username'], email=user_data['email'], password_hash=user_data['password_hash'])
-            print(f"Создан пользователь: {user.username} ({user.email})")
+            try:
+                site_id = await crud.get_last_site_id(db_session)
+            except Exception as e:
+                print(f"Ошибка при получении последнего site_id: {e}")
+                return
             
-            # Добавление сайта
-            site = await crud.create_site(db_session, site_id=site_data["site_id"], user_id=user.id, site_url=site_data['site_url'], site_name=site_data['site_name'], publication_interval=site_data["publication_interval"])
-            print(f"Добавлен сайт: {site.site_url}")
+            if site_id is not None:
+                site_data = {
+                    "site_id": site_id + 1,
+                    "user_id": user_data["user_id"],
+                    "site_url": initial_url,
+                    "site_name": domain, 
+                    "publication_interval": publication_interval
+                }
 
-            # Добавление статей
-            for article in article_data:
-                new_article = await crud.create_article(db_session, article_id=article["article_id"], site_id=site.id, article_title=article['title'], article_url=article['url'])
-                print(f"Добавлена статья: {new_article.article_title}")
+                try:
+                    article_id = await crud.get_last_article_id(db_session)
+                except Exception as e:
+                    print(f"Ошибка при получении последнего article_id: {e}")
+                    return
 
-    except Exception as e:
-        print(f"Ошибка при сохранении данных в БД: {e}")
+                if article_id is not None:
+                    try:
+                        # Преобразование данных из DataFrame в список статей
+                        article_data = df.to_dict('records')
+
+                        # Добавление article_id и site_id в данные о статьях
+                        for i, article in enumerate(article_data, start=article_id + 1):
+                            article["article_id"] = i
+                            article["site_id"] = site_data["site_id"]
+                    except Exception as e:
+                        print(f"Ошибка при преобразовании данных DataFrame в список: {e}")
+
+        try:
+            # Попробуем найти пользователя по email или имени
+            user = await crud.get_user_by_id(db_session, user_data["user_id"])
+        except Exception as e:
+            print(f"Ошибка при получении пользователя по ID: {e}")
+            return
+
+        try:
+            # Проверка, существует ли пользователь
+            if user:
+                print(f"Пользователь уже существует: {user.username} ({user.email})")
+                
+                try:
+                    site = await crud.get_site_by_user_and_url(db_session, user_id=user.id, site_url=site_data['site_url'])
+                except Exception as e:
+                    print(f"Ошибка при получении сайта для пользователя: {e}")
+                    return
+
+                if site:
+                    print(f"Сайт уже существует: {site.site_url} ({site.site_name})")
+                    
+                    try:
+                        existing_articles = await crud.get_articles_by_site_id(db_session, site_id=site.id)
+                    except Exception as e:
+                        print(f"Ошибка при получении статей по site_id: {e}")
+                        return
+                    
+                    existing_article_titles = {article.article_title for article in existing_articles}
+                    
+                    for article in article_data:
+                        title = article['title']
+                        if title in existing_article_titles:
+                            print(f"Статья уже существует: {title}")
+                        else:
+                            print(f"Статья не существует: {title}")
+                            try:
+                                new_article = await crud.create_article(
+                                    db_session,
+                                    article_id=article["article_id"],
+                                    site_id=site.id,
+                                    article_title=article['title'],
+                                    article_url=article['url']
+                                )
+                                print(f"Добавлена статья: {new_article.article_title}")
+                            except Exception as e:
+                                print(f"Ошибка при создании статьи: {e}")
+                else:
+                    try:
+                        site = await crud.create_site(
+                            db_session,
+                            site_id=site_data["site_id"],
+                            user_id=user.id,
+                            site_url=site_data['site_url'],
+                            site_name=site_data['site_name'],
+                            publication_interval=site_data["publication_interval"]
+                        )
+                        print(f"Добавлен сайт: {site.site_url}")
+                        
+                        for article in article_data:
+                            try:
+                                new_article = await crud.create_article(
+                                    db_session,
+                                    article_id=article["article_id"],
+                                    site_id=site.id,
+                                    article_title=article['title'],
+                                    article_url=article['url']
+                                )
+                                print(f"Добавлена статья: {new_article.article_title}")
+                            except Exception as e:
+                                print(f"Ошибка при добавлении статьи: {e}")
+                    except Exception as e:
+                        print(f"Ошибка при создании сайта: {e}")
+            else:
+                try:
+                    user = await crud.create_user(
+                        db_session,
+                        user_id=user_data["user_id"],
+                        username=user_data['username'],
+                        email=user_data['email'],
+                        password_hash=user_data['password_hash']
+                    )
+                    print(f"Создан пользователь: {user.username} ({user.email})")
+                except Exception as e:
+                    print(f"Ошибка при создании пользователя: {e}")
+                    return
+                
+                try:
+                    site = await crud.create_site(
+                        db_session,
+                        site_id=site_data["site_id"],
+                        user_id=user.id,
+                        site_url=site_data['site_url'],
+                        site_name=site_data['site_name'],
+                        publication_interval=site_data["publication_interval"]
+                    )
+                    print(f"Добавлен сайт: {site.site_url}")
+
+                    for article in article_data:
+                        try:
+                            new_article = await crud.create_article(
+                                db_session,
+                                article_id=article["article_id"],
+                                site_id=site.id,
+                                article_title=article['title'],
+                                article_url=article['url']
+                            )
+                            print(f"Добавлена статья: {new_article.article_title}")
+                        except Exception as e:
+                            print(f"Ошибка при добавлении статьи: {e}")
+                except Exception as e:
+                    print(f"Ошибка при добавлении сайта: {e}")
+
+        except Exception as e:
+            print(f"Ошибка при сохранении данных в БД: {e}")
 
     finally:
         # Закрытие сессии базы данных
-        db_session.close()
+        try:
+            db_session.close()
+        except Exception as e:
+            print(f"Ошибка при закрытии сессии базы данных: {e}")
+
 
 
 # Получение последней темы для статей из бд
