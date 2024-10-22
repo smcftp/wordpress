@@ -5,6 +5,7 @@ import json
 import pandas as pd
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+from aiogram.types import Message
 from langchain_community.document_loaders import UnstructuredURLLoader
 from sentence_transformers import SentenceTransformer, util
 import logging
@@ -16,6 +17,9 @@ from src.config import settings_pr
 client = AsyncOpenAI(
     api_key=settings_pr.openai_api_key
 )
+
+INPUT_COF_4O = 0.00000125
+OUTPUT_COF_4O = 0.000005
 
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
@@ -195,7 +199,7 @@ async def generate_keywords_for_article_gpt(title: str) -> str:
     
     
     
-async def rewrite_keywords_title(title: str, keywords: str, total_tokens: int):
+async def rewrite_keywords_title(title: str, keywords: str, total_tokens_input_4o: int, total_tokens_output_4o: int):
     
     # Промт для генерации ключевых слов на основе названия статьи
     prompt = f"""
@@ -239,13 +243,14 @@ async def rewrite_keywords_title(title: str, keywords: str, total_tokens: int):
             ]
         )
         
-        total_tokens += completion.usage.total_tokens
+        total_tokens_input_4o += completion.usage.prompt_tokens
+        total_tokens_output_4o += completion.usage.completion_tokens
         
         # Возвращаем сгенерированные ключевые слова
-        return str(completion.choices[0].message.content), total_tokens
+        return str(completion.choices[0].message.content), total_tokens_input_4o, total_tokens_output_4o
     except Exception as e:
         print(f"Error during keyword generation: {e}")
-        return "", total_tokens
+        return "", total_tokens_input_4o, total_tokens_output_4o
 
 # Асинхронная функция для фильтрации заголовков и добавления картинок
 async def define_location_for_picture(input_text: pd.DataFrame) -> list[str]:
@@ -355,9 +360,9 @@ async def generate_keywords_for_article(url: str, title: str, session: aiohttp.C
 def log_error(message: str, error: Exception):
     logging.error(f"{message}: {error}")
 
-async def gen_keyword_article(url: str, article_title: str, session: ClientSession) -> str:
+async def gen_keyword_article(message: Message, url: str, article_title: str, session: ClientSession) -> str:
     
-    total_tokens = 0
+    total_tokens_input_4o, total_tokens_output_4o = 0, 0
     
     try:
         # Парсинг контента статьи
@@ -449,8 +454,10 @@ async def gen_keyword_article(url: str, article_title: str, session: ClientSessi
                 {"role": "user", "content": plan_query}
             ]
         )
-        total_tokens += response.usage.total_tokens
         
+        total_tokens_input_4o += response.usage.prompt_tokens
+        total_tokens_output_4o += response.usage.completion_tokens
+
         article_content = str(response.choices[0].message.content)
         print(article_content)
         article_content_len = len(article_content)
@@ -671,7 +678,8 @@ async def gen_keyword_article(url: str, article_title: str, session: ClientSessi
                 ]
         )
         
-        total_tokens += response.usage.total_tokens
+        total_tokens_input_4o += response.usage.prompt_tokens
+        total_tokens_output_4o += response.usage.completion_tokens
         
         article = str(response.choices[0].message.content)
         rewrite_article_content += article
@@ -735,7 +743,8 @@ async def gen_keyword_article(url: str, article_title: str, session: ClientSessi
             # temperature=0.8
         )
         
-        total_tokens += response.usage.total_tokens
+        total_tokens_input_4o += response.usage.prompt_tokens
+        total_tokens_output_4o += response.usage.completion_tokens
 
         key_words_article = response.choices[0].message.content
         print(f"Статья с ключевыми словами = {key_words_article}")
@@ -770,6 +779,9 @@ async def gen_keyword_article(url: str, article_title: str, session: ClientSessi
             f"Количество символов в итоговом тексте: {len(key_words_article)} символов.\n"
             f"Потери в %: {((len(key_words_article) - article_content_len) / article_content_len) * 100}")
         print(f"Ключевые слова: {keywords}")
+
+        price = (total_tokens_input_4o * INPUT_COF_4O) + (total_tokens_output_4o * OUTPUT_COF_4O)
+        await message.answer(f"Цена статьи = {price}$\nКлючевые слова: {keywords}")
 
     except ValueError as ve:
         log_error("Ошибка при обработке заголовков", ve)
