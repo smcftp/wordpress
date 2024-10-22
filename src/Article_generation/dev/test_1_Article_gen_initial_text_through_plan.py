@@ -774,8 +774,8 @@ async def gen_keyword_article(message: Message, url: str, article_title: str, se
         #     else:
         #         print(f"Не удалось найти место для заголовка: {heading}")
         
-        keywords_article_title, total_tokens = await rewrite_keywords_title(article_title, keywords, total_tokens)
-        
+        keywords_article_title, total_tokens_input_4o, total_tokens_output_4o = await rewrite_keywords_title(article_title, keywords, total_tokens_input_4o, total_tokens_output_4o)
+
         print(f"total_tokens = {total_tokens}")
         print(f"Количество символов в изначальном тексте: {article_content_len} символов.\n"
             f"Количество символов в итоговом тексте: {len(key_words_article)} символов.\n"
