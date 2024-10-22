@@ -408,7 +408,7 @@ async def rephrase_image_query(image_query: str) -> str:
 async def add_img_to_textarticle(text_article: str, article_title: str, img_gen: bool) -> str:
     input_text = text_article
     
-    file_name = f"article_{uuid.uuid4().hex}.png"  # Имя вашего файла
+    file_name = f"article_{uuid.uuid4().hex}.html"  # Имя вашего файла
     
     if img_gen == True:
         
