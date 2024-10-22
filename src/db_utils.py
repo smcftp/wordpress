@@ -272,7 +272,7 @@ async def periodic_article_processing(message: Message, session: aiohttp.ClientS
                     from src.Article_generation.dev.test_1_Article_gen_initial_text_through_plan import gen_keyword_article
                     from src.Article_generation.dev.img_imput import add_img_to_textarticle
                     
-                    key_words_article, keywords_article_title = await gen_keyword_article(url, article_title, session)
+                    key_words_article, keywords_article_title = await gen_keyword_article(message, url, article_title, session)
                     
                     img_gen = True
                     
