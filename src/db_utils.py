@@ -18,6 +18,7 @@ import src.db.crud as crud
 
 # Функция для сохранения данных в базе данных.
 async def save_data_to_db(df: pd.DataFrame, initial_url: str, user_id: int, user_username: str, publication_interval: int):
+    print("вход сохранение")
     try:
         # Создание новой сессии базы данных
         db_session = SessionLocal()
@@ -278,7 +279,9 @@ async def periodic_article_processing(message: Message, session: aiohttp.ClientS
                     
                 else:
                     title_df = await utils.fetch_and_process_competitor_data(message, session, initial_url, se=se, top_n=10)
+                    print("выход из анализа")
                     await save_data_to_db(title_df, initial_url, user_id, user_username, publication_interval)
+                    print("выход из сохранения")
             else:
                 title_df = await utils.fetch_and_process_competitor_data(message, session, initial_url, se=se, top_n=10)
                 await save_data_to_db(title_df, initial_url, user_id, user_username, publication_interval)
