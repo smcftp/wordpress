@@ -3,6 +3,7 @@ import aiofiles
 import logging
 from openai import AsyncOpenAI
 
+import requests
 import aiohttp
 import re
 import json
