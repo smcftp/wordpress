@@ -222,7 +222,7 @@ async def text_to_html(text: str, article_title: str, file_name: str) -> str:
     temp_dir = tempfile.gettempdir()
     file_path = os.path.join(temp_dir, file_name)
     
-    async with aiofiles.open(file_name, 'w', encoding='utf-8') as file:
+    async with aiofiles.open(file_path, 'w', encoding='utf-8') as file:
         await file.write(html_content)
     
     return html_content
@@ -599,7 +599,7 @@ async def add_img_to_textarticle(text_article: str, article_title: str, img_gen:
     temp_dir = tempfile.gettempdir()
     file_path = os.path.join(temp_dir, file_name)
     
-    async with aiofiles.open(file_name, 'w', encoding='utf-8') as file:
+    async with aiofiles.open(file_path, 'w', encoding='utf-8') as file:
         await file.write(html_content)
         
     return os.path.abspath(file_name)
