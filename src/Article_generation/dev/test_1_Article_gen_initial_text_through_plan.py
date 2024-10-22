@@ -519,7 +519,8 @@ async def gen_keyword_article(message: Message, url: str, article_title: str, se
             ]
         )
         
-        total_tokens += response.usage.total_tokens
+        total_tokens_input_4o += response.usage.prompt_tokens
+        total_tokens_output_4o += response.usage.completion_tokens
         
         article_plan = response.choices[0].message.content
         print(f"План статьи: {article_plan}")
@@ -587,7 +588,8 @@ async def gen_keyword_article(message: Message, url: str, article_title: str, se
         tools=tools,
     )
     
-    total_tokens += response.usage.total_tokens
+    total_tokens_input_4o += response.usage.prompt_tokens
+    total_tokens_output_4o += response.usage.completion_tokens
 
     if response.choices[0].finish_reason != 'tool_calls':
         return ""
