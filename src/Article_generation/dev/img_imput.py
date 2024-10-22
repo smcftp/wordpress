@@ -5,7 +5,6 @@ from openai import AsyncOpenAI
 
 import aiohttp
 import re
-import webbrowser
 import json
 import pandas as pd
 import time
