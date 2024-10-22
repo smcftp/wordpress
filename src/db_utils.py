@@ -288,13 +288,16 @@ async def periodic_article_processing(message: Message, session: aiohttp.ClientS
                     print("выход из анализа")
                     await save_data_to_db(title_df, initial_url, user_id, user_username, publication_interval)
                     print("выход из сохранения")
+                    await message.answer("Статьи для сайта найдены.")
             else:
                 title_df = await utils.fetch_and_process_competitor_data(message, session, initial_url, se=se, top_n=10)
                 await save_data_to_db(title_df, initial_url, user_id, user_username, publication_interval)
+                await message.answer("Статьи для сайта найдены.")
         else:
             title_df = await utils.fetch_and_process_competitor_data(message, session, initial_url, se=se, top_n=10)
             await save_data_to_db(title_df, initial_url, user_id, user_username, publication_interval)
-            
+            await message.answer("Статьи для сайта найдены.")
+
         a = 2
 
 
