@@ -10,7 +10,7 @@ from aiogram.types.input_file import FSInputFile
 from urllib.parse import urlparse
 
 from bcrypt import gensalt, hashpw
-import src.utils
+import src.utils as utils
 
 from src.config import bot_tg
 from src.db.database import SessionLocal
