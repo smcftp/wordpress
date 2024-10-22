@@ -4,6 +4,7 @@ import logging
 from openai import AsyncOpenAI
 
 import requests
+import tempfile 
 import aiohttp
 import re
 import json
