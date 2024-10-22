@@ -225,7 +225,7 @@ async def text_to_html(text: str, article_title: str, file_name: str) -> str:
     async with aiofiles.open(file_path, 'w', encoding='utf-8') as file:
         await file.write(html_content)
     
-    return html_content
+    return html_content, file_path
 
 # Асинхронная функция для фильтрации заголовков и добавления картинок
 async def define_location_for_picture(input_text: pd.DataFrame) -> list[str]:
@@ -484,14 +484,9 @@ async def add_img_to_textarticle(text_article: str, article_title: str, img_gen:
 
             formatted_output = await insert_image_after_semantic_phrase(formatted_output, word, image_url, article_title)
         
-        output_html = await text_to_html(formatted_output, article_title, file_name)
-
-        # # Открываем HTML файл в браузере
-        # webbrowser.open('file://' + os.path.realpath(output_html))
+        output_html, file_path = await text_to_html(formatted_output, article_title, file_name)
         
-        htmp_path = os.path.abspath(file_name)
-        
-        return htmp_path
+        return file_path
     
     else: 
         
@@ -602,6 +597,6 @@ async def add_img_to_textarticle(text_article: str, article_title: str, img_gen:
     async with aiofiles.open(file_path, 'w', encoding='utf-8') as file:
         await file.write(html_content)
         
-    return os.path.abspath(file_name)
+    return file_path
     
     
