@@ -30,7 +30,7 @@ async def save_data_to_db(df: pd.DataFrame, initial_url: str, user_id: int, user
         user_data = {
             "user_id": user_id,
             "username": user_username,
-            "email": str(user_username + "@example.com"),
+            "email": str(str(user_username) + "@example.com"),
             "password_hash": str(hashed_password),
         }
         
@@ -44,15 +44,21 @@ async def save_data_to_db(df: pd.DataFrame, initial_url: str, user_id: int, user
         domain = parsed_url.netloc
         
         if site:
-            site_id = site.id
+
+            try:
+                site_id = site.id
             
-            site_data = {
-                "site_id": site_id,
-                "user_id": user_data["user_id"],
-                "site_url": initial_url,
-                "site_name": domain, 
-                "publication_interval": publication_interval
-            }
+                site_data = {
+                    "site_id": site_id,
+                    "user_id": user_data["user_id"],
+                    "site_url": initial_url,
+                    "site_name": domain, 
+                    "publication_interval": publication_interval
+                }
+                
+            except Exception as e:
+                print(f"Ошибка при получении последнего article_id: {e}")
+                return
             
             try:
                 article_id = await crud.get_last_article_id(db_session)
